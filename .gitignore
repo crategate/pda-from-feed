@@ -1,0 +1,21 @@
+
+# Anchor internal files
+.anchor/
+target/
+
+.env
+# Local Ledger
+test-ledger/
+
+# Dependencies
+node_modules/
+
+# Secrets (DANGER: Never commit these)
+**/*.json
+!**/package.json
+!**/tsconfig.json
+!**/anchor.toml
+
+# System files
+.DS_Store
+**/*.rs.bk
