@@ -15,16 +15,16 @@
 import { OracleJob } from "@switchboard-xyz/common";
 import * as anchor from "@coral-xyz/anchor";
 import {
-  Connection,
-  Commitment,
-  Keypair,
-  PublicKey,
-  VersionedTransaction,
-  TransactionInstruction,
-  TransactionSignature,
-  SYSVAR_SLOT_HASHES_PUBKEY,
-  SYSVAR_INSTRUCTIONS_PUBKEY,
-  SYSVAR_CLOCK_PUBKEY,
+    Connection,
+    Commitment,
+    Keypair,
+    PublicKey,
+    VersionedTransaction,
+    TransactionInstruction,
+    TransactionSignature,
+    SYSVAR_SLOT_HASHES_PUBKEY,
+    SYSVAR_INSTRUCTIONS_PUBKEY,
+    SYSVAR_CLOCK_PUBKEY,
 } from "@solana/web3.js";
 import * as sb from "@switchboard-xyz/on-demand";
 
@@ -33,11 +33,11 @@ import * as sb from "@switchboard-xyz/on-demand";
  * These are generated when you deploy the example programs using Anchor
  */
 export const BASIC_PROGRAM_PATH =
-  "target/deploy/basic_oracle_example-keypair.json";
+    "target/deploy/basic_oracle_example-keypair.json";
 export const ADVANCED_PROGRAM_PATH =
-  "target/deploy/advanced_oracle_example-keypair.json";
+    "target/deploy/advanced_oracle_example-keypair.json";
 export const PREDICTION_MARKET_PROGRAM_PATH =
-  "target/deploy/prediction_market-keypair.json";
+    "target/deploy/prediction_market-keypair.json";
 
 /**
  * Default transaction configuration for Switchboard interactions
@@ -48,9 +48,9 @@ export const PREDICTION_MARKET_PROGRAM_PATH =
  * @property {number} maxRetries - Disable automatic retries for more control
  */
 export const TX_CONFIG = {
-  commitment: "confirmed" as Commitment,
-  skipPreflight: true,
-  maxRetries: 0,
+    commitment: "confirmed" as Commitment,
+    skipPreflight: true,
+    maxRetries: 0,
 };
 
 /**
@@ -73,25 +73,25 @@ export const TX_CONFIG = {
  * ```
  */
 export async function myAnchorProgram(
-  provider: anchor.Provider,
-  keypath: string
+    provider: anchor.Provider,
+    keypath: string
 ): Promise<anchor.Program> {
-  const myProgramKeypair = await sb.AnchorUtils.initKeypairFromFile(keypath);
-  const pid = myProgramKeypair.publicKey;
-  let idl: anchor.Idl | null = null;
-  try {
-    idl = (await anchor.Program.fetchIdl(pid, provider))!;
-  } catch (e) {
-    throw new Error(
-      `Failed to fetch IDL for program ${pid.toBase58()}. Was it deployed?`
-    );
-  }
-  try {
-    const program = new anchor.Program(idl!, provider);
-    return program;
-  } catch (e) {
-    throw new Error("Failed to load IDL of demo program. Was it deployed?");
-  }
+    const myProgramKeypair = await sb.AnchorUtils.initKeypairFromFile(keypath);
+    const pid = myProgramKeypair.publicKey;
+    let idl: anchor.Idl | null = null;
+    try {
+        idl = (await anchor.Program.fetchIdl(pid, provider))!;
+    } catch (e) {
+        throw new Error(
+            `Failed to fetch IDL for program ${pid.toBase58()}. Was it deployed?`
+        );
+    }
+    try {
+        const program = new anchor.Program(idl!, provider);
+        return program;
+    } catch (e) {
+        throw new Error("Failed to load IDL of demo program. Was it deployed?");
+    }
 }
 
 /**
@@ -114,63 +114,73 @@ export async function myAnchorProgram(
  * ```
  */
 export async function oracleUpdateIx(
-  program: anchor.Program,
-  queue: PublicKey | string,
-  payer: PublicKey
+    program: anchor.Program,
+    queue: PublicKey | string,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  const [statePda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("state")],
-    program.programId
-  );
-  const [oraclePda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("oracle")],
-    program.programId
-  );
+    const [statePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("state")],
+        program.programId
+    );
+    const [oraclePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("oracle")],
+        program.programId
+    );
+    const [marketStatusPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("market_status")],
+        program.programId
+    )
+    console.log("wrote to state PDA here::: {}", marketStatusPda);
 
-  const myIx = await program.methods
-    .switchboardOracleUpdate()
-    .accounts({
-      state: statePda,
-      oracle: oraclePda,
-      payer: payer,
-      queue: new PublicKey(queue),
-      slothashes: SYSVAR_SLOT_HASHES_PUBKEY,
-      instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
-      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-    })
-    .instruction();
-  return myIx;
+    const myIx = await program.methods
+        .switchboardOracleUpdate()
+        .accounts({
+            state: statePda,
+            oracle: oraclePda,
+            payer: payer,
+            queue: new PublicKey(queue),
+            slothashes: SYSVAR_SLOT_HASHES_PUBKEY,
+            instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+            marketStatus: marketStatusPda,
+        })
+        .instruction();
+    return myIx;
 }
 
 export async function verifyIx(
-  program: anchor.Program,
-  queue: PublicKey | string,
-  payer: PublicKey
+    program: anchor.Program,
+    queue: PublicKey | string,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  const [statePda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("state")],
-    program.programId
-  );
-  const [oraclePda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("oracle")],
-    program.programId
-  );
-
-  const myIx = await program.methods
-    .verify()
-    .accounts({
-      state: statePda,
-      oracle: oraclePda,
-      payer: payer,
-      queue: new PublicKey(queue),
-      slothashes: SYSVAR_SLOT_HASHES_PUBKEY,
-      instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
-      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-    })
-    .instruction();
-  return myIx;
+    const [statePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("state")],
+        program.programId
+    );
+    const [oraclePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("oracle")],
+        program.programId
+    );
+    const [marketStatusPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("market_status")],
+        program.programId
+    )
+    const myIx = await program.methods
+        .verify()
+        .accounts({
+            state: statePda,
+            oracle: oraclePda,
+            payer: payer,
+            queue: new PublicKey(queue),
+            slothashes: SYSVAR_SLOT_HASHES_PUBKEY,
+            instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+            marketStatus: marketStatusPda,
+        })
+        .instruction();
+    return myIx;
 }
 
 /**
@@ -188,16 +198,16 @@ export async function verifyIx(
  * ```
  */
 export function buildSanctumFairPriceJob(lstMint: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        sanctumLstPriceTask: {
-          lstMint,
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                sanctumLstPriceTask: {
+                    lstMint,
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -219,21 +229,21 @@ export function buildSanctumFairPriceJob(lstMint: string): OracleJob {
  * @see https://binance-docs.github.io/apidocs/spot/en/#symbol-price-ticker
  */
 export function buildBinanceJob(pair: string): OracleJob {
-  const jobConfig = {
-    tasks: [
-      {
-        httpTask: {
-          url: `https://www.binance.com/api/v3/ticker/price`,
-        },
-      },
-      {
-        jsonParseTask: {
-          path: `$[?(@.symbol == '${pair}')].price`,
-        },
-      },
-    ],
-  };
-  return OracleJob.fromObject(jobConfig);
+    const jobConfig = {
+        tasks: [
+            {
+                httpTask: {
+                    url: `https://www.binance.com/api/v3/ticker/price`,
+                },
+            },
+            {
+                jsonParseTask: {
+                    path: `$[?(@.symbol == '${pair}')].price`,
+                },
+            },
+        ],
+    };
+    return OracleJob.fromObject(jobConfig);
 }
 
 /**
@@ -256,37 +266,37 @@ export function buildBinanceJob(pair: string): OracleJob {
  * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-exchange-rates
  */
 export function buildCoinbaseJob(pair: String): OracleJob {
-  const parts = pair.split("-");
-  const jobConfig = {
-    tasks: [
-      {
-        valueTask: { value: 1 },
-      },
-      {
-        divideTask: {
-          job: {
-            tasks: [
-              {
-                httpTask: {
-                  url: `https://api.coinbase.com/v2/exchange-rates?currency=${parts[1]}`,
-                  headers: [
-                    { key: "Accept", value: "application/json" },
-                    { key: "User-Agent", value: "Mozilla/5.0" },
-                  ],
+    const parts = pair.split("-");
+    const jobConfig = {
+        tasks: [
+            {
+                valueTask: { value: 1 },
+            },
+            {
+                divideTask: {
+                    job: {
+                        tasks: [
+                            {
+                                httpTask: {
+                                    url: `https://api.coinbase.com/v2/exchange-rates?currency=${parts[1]}`,
+                                    headers: [
+                                        { key: "Accept", value: "application/json" },
+                                        { key: "User-Agent", value: "Mozilla/5.0" },
+                                    ],
+                                },
+                            },
+                            {
+                                jsonParseTask: {
+                                    path: `$.data.rates.${parts[0]}`,
+                                },
+                            },
+                        ],
+                    },
                 },
-              },
-              {
-                jsonParseTask: {
-                  path: `$.data.rates.${parts[0]}`,
-                },
-              },
-            ],
-          },
-        },
-      },
-    ],
-  };
-  return OracleJob.fromObject(jobConfig);
+            },
+        ],
+    };
+    return OracleJob.fromObject(jobConfig);
 }
 
 /**
@@ -307,22 +317,22 @@ export function buildCoinbaseJob(pair: String): OracleJob {
  * @see https://www.okx.com/docs-v5/en/#rest-api-market-data-get-index-tickers
  */
 export function buildOkxJob(pair: String): OracleJob {
-  const parts = pair.split("-");
-  const jobConfig = {
-    tasks: [
-      {
-        httpTask: {
-          url: `https://www.okx.com/api/v5/market/index-tickers?quoteCcy=USD`,
-        },
-      },
-      {
-        jsonParseTask: {
-          path: `$.data[?(@.instId == "${parts[0]}-${parts[1]}")].idxPx`,
-        },
-      },
-    ],
-  };
-  return OracleJob.fromObject(jobConfig);
+    const parts = pair.split("-");
+    const jobConfig = {
+        tasks: [
+            {
+                httpTask: {
+                    url: `https://www.okx.com/api/v5/market/index-tickers?quoteCcy=USD`,
+                },
+            },
+            {
+                jsonParseTask: {
+                    path: `$.data[?(@.instId == "${parts[0]}-${parts[1]}")].idxPx`,
+                },
+            },
+        ],
+    };
+    return OracleJob.fromObject(jobConfig);
 }
 
 /**
@@ -343,21 +353,21 @@ export function buildOkxJob(pair: String): OracleJob {
  * @see https://bybit-exchange.github.io/docs/v5/market/tickers
  */
 export function buildBybitJob(pair: String): OracleJob {
-  const jobConfig = {
-    tasks: [
-      {
-        httpTask: {
-          url: `https://api.bybit.com/v5/market/tickers?category=spot`,
-        },
-      },
-      {
-        jsonParseTask: {
-          path: `$.result.list[?(@.symbol == '${pair}')].lastPrice`,
-        },
-      },
-    ],
-  };
-  return OracleJob.fromObject(jobConfig);
+    const jobConfig = {
+        tasks: [
+            {
+                httpTask: {
+                    url: `https://api.bybit.com/v5/market/tickers?category=spot`,
+                },
+            },
+            {
+                jsonParseTask: {
+                    path: `$.result.list[?(@.symbol == '${pair}')].lastPrice`,
+                },
+            },
+        ],
+    };
+    return OracleJob.fromObject(jobConfig);
 }
 
 /**
@@ -379,21 +389,21 @@ export function buildBybitJob(pair: String): OracleJob {
  * @see https://www.gate.io/docs/apiv4/en/#retrieve-ticker-information
  */
 export function buildGateJob(pair: String): OracleJob {
-  const jobConfig = {
-    tasks: [
-      {
-        httpTask: {
-          url: `https://api.gateio.ws/api/v4/spot/tickers`,
-        },
-      },
-      {
-        jsonParseTask: {
-          path: `$[?(@.currency_pair == '${pair}')].last`,
-        },
-      },
-    ],
-  };
-  return OracleJob.fromObject(jobConfig);
+    const jobConfig = {
+        tasks: [
+            {
+                httpTask: {
+                    url: `https://api.gateio.ws/api/v4/spot/tickers`,
+                },
+            },
+            {
+                jsonParseTask: {
+                    path: `$[?(@.currency_pair == '${pair}')].last`,
+                },
+            },
+        ],
+    };
+    return OracleJob.fromObject(jobConfig);
 }
 
 /**
@@ -415,19 +425,19 @@ export function buildGateJob(pair: String): OracleJob {
  * @see https://pyth.network/developers/price-feed-ids
  */
 export function buildPythJob(id: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        oracleTask: {
-          pythAddress: id,
-          pythConfigs: {
-            pythAllowedConfidenceInterval: 1.0,
-          },
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                oracleTask: {
+                    pythAddress: id,
+                    pythConfigs: {
+                        pythAllowedConfidenceInterval: 1.0,
+                    },
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -448,17 +458,17 @@ export function buildPythJob(id: string): OracleJob {
  * @see https://docs.chain.link/data-feeds/price-feeds/addresses
  */
 export function buildChainlinkJob(id: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        oracleTask: {
-          chainlinkAddress: id,
-          chainlinkConfigs: {},
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                oracleTask: {
+                    chainlinkAddress: id,
+                    chainlinkConfigs: {},
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -480,19 +490,19 @@ export function buildChainlinkJob(id: string): OracleJob {
  * @note This references Switchboard V3 feeds, not on-demand feeds
  */
 export function buildSwitchboardJob(id: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        oracleTask: {
-          switchboardAddress: id,
-          switchboardConfigs: {
-            version: 3,
-          },
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                oracleTask: {
+                    switchboardAddress: id,
+                    switchboardConfigs: {
+                        version: 3,
+                    },
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -513,17 +523,17 @@ export function buildSwitchboardJob(id: string): OracleJob {
  * @see https://docs.redstone.finance/
  */
 export function buildRedstoneJob(id: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        oracleTask: {
-          redstoneId: id,
-          redstoneConfigs: {},
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                oracleTask: {
+                    redstoneId: id,
+                    redstoneConfigs: {},
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -541,17 +551,17 @@ export function buildRedstoneJob(id: string): OracleJob {
  * ```
  */
 export function buildEdgeJob(id: string): OracleJob {
-  const jobConfig = OracleJob.fromObject({
-    tasks: [
-      {
-        oracleTask: {
-          edgeId: id,
-          edgeConfigs: {},
-        },
-      },
-    ],
-  });
-  return jobConfig;
+    const jobConfig = OracleJob.fromObject({
+        tasks: [
+            {
+                oracleTask: {
+                    edgeId: id,
+                    edgeConfigs: {},
+                },
+            },
+        ],
+    });
+    return jobConfig;
 }
 
 /**
@@ -577,14 +587,14 @@ export function buildEdgeJob(id: string): OracleJob {
  * ```
  */
 export async function sendAndConfirmTx(
-  connection: Connection,
-  tx: VersionedTransaction,
-  signers: Array<Keypair>
+    connection: Connection,
+    tx: VersionedTransaction,
+    signers: Array<Keypair>
 ): Promise<TransactionSignature> {
-  tx.sign(signers);
-  const sig = await connection.sendTransaction(tx);
-  await connection.confirmTransaction(sig, "confirmed");
-  return sig;
+    tx.sign(signers);
+    const sig = await connection.sendTransaction(tx);
+    await connection.confirmTransaction(sig, "confirmed");
+    return sig;
 }
 
 /**
@@ -600,29 +610,29 @@ export async function sendAndConfirmTx(
  * ```
  */
 export function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function calculateStatistics(latencies: number[]) {
-  const sortedLatencies = [...latencies].sort((a, b) => a - b);
-  const min = sortedLatencies[0];
-  const max = sortedLatencies[sortedLatencies.length - 1];
-  const median =
-    sortedLatencies.length % 2 === 0
-      ? (sortedLatencies[sortedLatencies.length / 2 - 1] +
-          sortedLatencies[sortedLatencies.length / 2]) /
-        2
-      : sortedLatencies[Math.floor(sortedLatencies.length / 2)];
-  const sum = sortedLatencies.reduce((a, b) => a + b, 0);
-  const mean = sum / sortedLatencies.length;
+    const sortedLatencies = [...latencies].sort((a, b) => a - b);
+    const min = sortedLatencies[0];
+    const max = sortedLatencies[sortedLatencies.length - 1];
+    const median =
+        sortedLatencies.length % 2 === 0
+            ? (sortedLatencies[sortedLatencies.length / 2 - 1] +
+                sortedLatencies[sortedLatencies.length / 2]) /
+            2
+            : sortedLatencies[Math.floor(sortedLatencies.length / 2)];
+    const sum = sortedLatencies.reduce((a, b) => a + b, 0);
+    const mean = sum / sortedLatencies.length;
 
-  return {
-    min,
-    max,
-    median,
-    mean,
-    count: latencies.length,
-  };
+    return {
+        min,
+        max,
+        median,
+        mean,
+        count: latencies.length,
+    };
 }
 
 /**
@@ -638,21 +648,26 @@ export function calculateStatistics(latencies: number[]) {
  * @returns {Promise<TransactionInstruction>} Instruction to read oracle data
  */
 export async function basicReadOracleIx(
-  program: anchor.Program,
-  quoteAccount: PublicKey,
-  queue: PublicKey,
-  payer: PublicKey
+    program: anchor.Program,
+    quoteAccount: PublicKey,
+    queue: PublicKey,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  return await program.methods
-    .readOracleData()
-    .accounts({
-      queue: queue,
-      quoteAccount: quoteAccount,
-      clockSysvar: SYSVAR_CLOCK_PUBKEY,
-      payer: payer,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .instruction();
+    const [marketStatusPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("market_status")],
+        program.programId
+    )
+    return await program.methods
+        .readOracleData()
+        .accounts({
+            queue: queue,
+            quoteAccount: quoteAccount,
+            clockSysvar: SYSVAR_CLOCK_PUBKEY,
+            payer: payer,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            marketStatus: marketStatusPda,
+        })
+        .instruction();
 }
 
 /**
@@ -667,33 +682,33 @@ export async function basicReadOracleIx(
  * @returns {Promise<TransactionInstruction>} Instruction to read oracle data
  */
 export async function advancedProcessOracleIx(
-  programId: PublicKey,
-  quoteAccount: PublicKey,
-  queue: PublicKey
+    programId: PublicKey,
+    quoteAccount: PublicKey,
+    queue: PublicKey
 ): Promise<TransactionInstruction> {
-  const keys = [
-    { pubkey: quoteAccount, isSigner: false, isWritable: false }, // accounts[0]
-    { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1]
-    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // accounts[2]
-    {
-      pubkey: sb.SPL_SYSVAR_SLOT_HASHES_ID,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[3]
-    {
-      pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[4]
-  ];
+    const keys = [
+        { pubkey: quoteAccount, isSigner: false, isWritable: false }, // accounts[0]
+        { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1]
+        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // accounts[2]
+        {
+            pubkey: sb.SPL_SYSVAR_SLOT_HASHES_ID,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[3]
+        {
+            pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[4]
+    ];
 
-  const data = Buffer.from([1]); // instruction discriminator: 1 = read
+    const data = Buffer.from([1]); // instruction discriminator: 1 = read
 
-  return new TransactionInstruction({
-    keys,
-    programId,
-    data,
-  });
+    return new TransactionInstruction({
+        keys,
+        programId,
+        data,
+    });
 }
 
 /**
@@ -710,37 +725,37 @@ export async function advancedProcessOracleIx(
  * @returns {Promise<TransactionInstruction>} Instruction to crank oracle data
  */
 export async function advancedCrankOracleIx(
-  programId: PublicKey,
-  quoteAccount: PublicKey,
-  queue: PublicKey,
-  payer: PublicKey
+    programId: PublicKey,
+    quoteAccount: PublicKey,
+    queue: PublicKey,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  // Derive the state account
-  const [stateAccount] = PublicKey.findProgramAddressSync(
-    [Buffer.from("state")],
-    programId
-  );
+    // Derive the state account
+    const [stateAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("state")],
+        programId
+    );
 
-  const keys = [
-    { pubkey: quoteAccount, isSigner: false, isWritable: true }, // accounts[0] - quote
-    { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1] - queue
-    { pubkey: stateAccount, isSigner: false, isWritable: true }, // accounts[2] - state
-    { pubkey: payer, isSigner: true, isWritable: true }, // accounts[3] - payer
-    {
-      pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[4] - instructions_sysvar
-    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // accounts[5] - clock_sysvar
-  ];
+    const keys = [
+        { pubkey: quoteAccount, isSigner: false, isWritable: true }, // accounts[0] - quote
+        { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1] - queue
+        { pubkey: stateAccount, isSigner: false, isWritable: true }, // accounts[2] - state
+        { pubkey: payer, isSigner: true, isWritable: true }, // accounts[3] - payer
+        {
+            pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[4] - instructions_sysvar
+        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, // accounts[5] - clock_sysvar
+    ];
 
-  const data = Buffer.from([0]); // instruction discriminator: 0 = crank
+    const data = Buffer.from([0]); // instruction discriminator: 0 = crank
 
-  return new TransactionInstruction({
-    keys,
-    programId,
-    data,
-  });
+    return new TransactionInstruction({
+        keys,
+        programId,
+        data,
+    });
 }
 
 /**
@@ -750,9 +765,9 @@ export async function advancedCrankOracleIx(
  * @returns {Promise<anchor.Program>} Basic program instance
  */
 export async function loadBasicProgram(
-  provider: anchor.Provider
+    provider: anchor.Provider
 ): Promise<anchor.Program> {
-  return await myAnchorProgram(provider, BASIC_PROGRAM_PATH);
+    return await myAnchorProgram(provider, BASIC_PROGRAM_PATH);
 }
 
 /**
@@ -766,32 +781,32 @@ export async function loadBasicProgram(
  * @returns {Promise<TransactionInstruction>} Instruction to initialize state
  */
 export async function advancedInitStateIx(
-  programId: PublicKey,
-  payer: PublicKey
+    programId: PublicKey,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  // Derive the state account
-  const [stateAccount] = PublicKey.findProgramAddressSync(
-    [Buffer.from("state")],
-    programId
-  );
+    // Derive the state account
+    const [stateAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("state")],
+        programId
+    );
 
-  const keys = [
-    { pubkey: stateAccount, isSigner: false, isWritable: true }, // accounts[0] - state
-    { pubkey: payer, isSigner: true, isWritable: true }, // accounts[1] - payer
-    {
-      pubkey: anchor.web3.SystemProgram.programId,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[2] - system_program
-  ];
+    const keys = [
+        { pubkey: stateAccount, isSigner: false, isWritable: true }, // accounts[0] - state
+        { pubkey: payer, isSigner: true, isWritable: true }, // accounts[1] - payer
+        {
+            pubkey: anchor.web3.SystemProgram.programId,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[2] - system_program
+    ];
 
-  const data = Buffer.from([2]); // instruction discriminator: 2 = init_state
+    const data = Buffer.from([2]); // instruction discriminator: 2 = init_state
 
-  return new TransactionInstruction({
-    keys,
-    programId,
-    data,
-  });
+    return new TransactionInstruction({
+        keys,
+        programId,
+        data,
+    });
 }
 
 /**
@@ -807,34 +822,34 @@ export async function advancedInitStateIx(
  * @returns {Promise<TransactionInstruction>} Instruction to initialize oracle
  */
 export async function advancedInitOracleIx(
-  programId: PublicKey,
-  quoteAccount: PublicKey,
-  queue: PublicKey,
-  payer: PublicKey
+    programId: PublicKey,
+    quoteAccount: PublicKey,
+    queue: PublicKey,
+    payer: PublicKey
 ): Promise<TransactionInstruction> {
-  const keys = [
-    { pubkey: quoteAccount, isSigner: false, isWritable: true }, // accounts[0] - quote
-    { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1] - queue
-    { pubkey: payer, isSigner: true, isWritable: true }, // accounts[2] - payer
-    {
-      pubkey: anchor.web3.SystemProgram.programId,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[3] - system_program
-    {
-      pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
-      isSigner: false,
-      isWritable: false,
-    }, // accounts[4] - instructions_sysvar
-  ];
+    const keys = [
+        { pubkey: quoteAccount, isSigner: false, isWritable: true }, // accounts[0] - quote
+        { pubkey: queue, isSigner: false, isWritable: false }, // accounts[1] - queue
+        { pubkey: payer, isSigner: true, isWritable: true }, // accounts[2] - payer
+        {
+            pubkey: anchor.web3.SystemProgram.programId,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[3] - system_program
+        {
+            pubkey: sb.SPL_SYSVAR_INSTRUCTIONS_ID,
+            isSigner: false,
+            isWritable: false,
+        }, // accounts[4] - instructions_sysvar
+    ];
 
-  const data = Buffer.from([3]); // instruction discriminator: 3 = init_oracle
+    const data = Buffer.from([3]); // instruction discriminator: 3 = init_oracle
 
-  return new TransactionInstruction({
-    keys,
-    programId,
-    data,
-  });
+    return new TransactionInstruction({
+        keys,
+        programId,
+        data,
+    });
 }
 
 /**
@@ -846,10 +861,10 @@ export async function advancedInitOracleIx(
  * @returns {Promise<PublicKey>} Advanced program ID
  */
 export async function loadAdvancedProgram(): Promise<PublicKey> {
-  const programKeypair = await sb.AnchorUtils.initKeypairFromFile(
-    ADVANCED_PROGRAM_PATH
-  );
-  return programKeypair.publicKey;
+    const programKeypair = await sb.AnchorUtils.initKeypairFromFile(
+        ADVANCED_PROGRAM_PATH
+    );
+    return programKeypair.publicKey;
 }
 
 /**
@@ -864,13 +879,13 @@ export const DEFAULT_FEED_ID = "4cd1cad962425681af07b9254b7d804de3ca3446fbfd1371
  * @param {string} feedId - The feed ID being used
  */
 export function logFeedId(feedId: string): void {
-  if (!process.argv.includes("--feedId")) {
-    console.log("ℹ️  No --feedId flag passed, using default BTC/USD Surge feed:");
-    console.log(`   Feed ID: ${feedId}`);
-    console.log(`   Explorer: https://explorer.switchboardlabs.xyz/`);
-  } else {
-    console.log("Using feed ID:", feedId);
-  }
+    if (!process.argv.includes("--feedId")) {
+        console.log("ℹ️  No --feedId flag passed, using default BTC/USD Surge feed:");
+        console.log(`   Feed ID: ${feedId}`);
+        console.log(`   Explorer: https://explorer.switchboardlabs.xyz/`);
+    } else {
+        console.log("Using feed ID:", feedId);
+    }
 }
 
 /**
@@ -883,21 +898,21 @@ export function logFeedId(feedId: string): void {
  * @param {PublicKey} payer - The payer public key
  */
 export async function handleSimulationError(
-  error: any,
-  connection: Connection,
-  payer: PublicKey
+    error: any,
+    connection: Connection,
+    payer: PublicKey
 ): Promise<void> {
-  console.error("❌ Simulation failed:", error);
+    console.error("❌ Simulation failed:", error);
 
-  // Check if it's an AccountNotFound error (likely insufficient balance)
-  const errStr = JSON.stringify(error);
-  if (errStr.includes("AccountNotFound")) {
-    console.error("\n💡 Tip: This error usually means your payer account has no SOL balance.");
-    console.error(`   Payer: ${payer.toBase58()}`);
-    console.error("   Please fund your account with SOL and try again.");
+    // Check if it's an AccountNotFound error (likely insufficient balance)
+    const errStr = JSON.stringify(error);
+    if (errStr.includes("AccountNotFound")) {
+        console.error("\n💡 Tip: This error usually means your payer account has no SOL balance.");
+        console.error(`   Payer: ${payer.toBase58()}`);
+        console.error("   Please fund your account with SOL and try again.");
 
-    // Show balance
-    const balance = await connection.getBalance(payer);
-    console.error(`   Current balance: ${balance / 1e9} SOL`);
-  }
+        // Show balance
+        const balance = await connection.getBalance(payer);
+        console.error(`   Current balance: ${balance / 1e9} SOL`);
+    }
 }

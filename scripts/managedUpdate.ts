@@ -1,6 +1,7 @@
 import * as sb from "@switchboard-xyz/on-demand";
 import { OracleQuote, isMainnetConnection } from "@switchboard-xyz/on-demand";
 import yargs from "yargs";
+import { PublicKey } from "@solana/web3.js";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
 import {
@@ -97,12 +98,12 @@ const argv = yargs(process.argv)
                 basicProgram,
                 quoteAccount,
                 queue.pubkey,
-                keypair.publicKey
+                keypair.publicKey,
             );
             ixs.push(readOracleIx);
             console.log("  - Basic oracle program crank instruction");
-        } catch {
-            console.log("ℹ️  Skipping crank: basic_oracle_example program not deployed on-chain");
+        } catch (e) {
+            console.log("crank failed: ", e);
             console.log("   To deploy, run: anchor build && anchor deploy");
         }
     } else {
@@ -121,14 +122,32 @@ const argv = yargs(process.argv)
 
     program?.methods
 
-    // Send the transaction
     try {
+        // 1. Simulate first to catch errors early
         const sim = await connection.simulateTransaction(tx);
+        console.log("--- Simulation Logs ---");
         console.log(sim.value.logs?.join("\n"));
+
         if (sim.value.err) {
             await handleSimulationError(sim.value.err, connection, keypair.publicKey);
             return;
         }
+
+        // 2. ACTUALLY SEND IT TO THE NETWORK
+        console.log("🚀 Simulation passed. Sending transaction to Devnet...");
+        const signature = await connection.sendTransaction(tx);
+
+        // 3. Wait for confirmation
+        const latestBlockhash = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({
+            signature,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+
+        console.log(`✅ State Updated Successfully!`);
+        console.log(`🔍 View on Solscan: https://solscan.io/tx/${signature}?cluster=devnet`);
+
     } catch (error) {
         console.error("❌ Transaction failed:", error);
     }

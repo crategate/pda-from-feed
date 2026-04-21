@@ -50,8 +50,6 @@ pub mod basic_oracle_example {
             msg!("📊 Feed {}: ID = {}", i, feed.hex_id());
             msg!("💰 Feed {}: Value = {}", i, feed.value());
 
-            // Your business logic here!
-            // For example:
             // - Store the price in your program state
             // - Trigger events based on price changes
             // - Use the price for calculations
@@ -59,7 +57,7 @@ pub mod basic_oracle_example {
 
         msg!("✅ Successfully read {} oracle feeds!", feeds.len());
 
-        msg!("WRITING STATE ACCOUNT");
+        msg!("WRITING TO pda STATE ACCOUNT");
         ctx.accounts.market_status.current_state = feeds[0]
             .value()
             .to_u8()

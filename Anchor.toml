@@ -16,3 +16,6 @@ url = "https://api.apr.dev"
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
+
+[scripts]
+crank = "npx ts-node ./scripts/managedUpdate.ts --feedId 0xaf3a39b12f5c052d81eb8c62bb86f4691fce2c2e0c88b39f83801978b6f203c3"
