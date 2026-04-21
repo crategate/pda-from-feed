@@ -120,7 +120,6 @@ const argv = yargs(process.argv)
         computeUnitLimitMultiple: 1.1, // 10% buffer
     });
 
-    program?.methods
 
     try {
         // 1. Simulate first to catch errors early
